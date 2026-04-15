@@ -1,0 +1,244 @@
+@model CoveoValidator.Models.Coveo.CoveoSearchViewModel
+@using CoveoValidator.Models.Coveo
+@{
+    ViewBag.Title = "Coveo GA Validator";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- ══════════════════════════════════════════════════════
+     SEARCH FORM
+     ══════════════════════════════════════════════════════ -->
+<div class="card search-card mb-4">
+    <div class="card-body p-4">
+        <h5 class="card-title mb-1">
+            <i class="bi bi-search me-2 text-primary"></i>Search Coveo Content
+        </h5>
+        <p class="text-muted small mb-3">
+            Validate whether Sitecore data exists in Coveo and check GA field completeness.
+        </p>
+
+        @using (Html.BeginForm("Index", "Coveo", FormMethod.Post, new { id = "searchForm" }))
+        {
+            @Html.AntiForgeryToken()
+
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold" for="ContentType">
+                        <i class="bi bi-layers me-1"></i>Content Type
+                    </label>
+                    @Html.DropDownListFor(m => m.Request.ContentType,
+                        new SelectList(new[]
+                        {
+                            new { Value = "Hotel",     Text = "Hotel" },
+                            new { Value = "Excursion", Text = "Excursion" }
+                        }, "Value", "Text", Model.Request.ContentType),
+                        new { @class = "form-select", id = "ContentType" })
+                </div>
+
+                <div class="col-md-7">
+                    <label class="form-label fw-semibold" for="SriggleIds">
+                        <i class="bi bi-upc-scan me-1"></i>Sriggle IDs
+                        <span class="text-muted fw-normal">(comma-separated)</span>
+                    </label>
+                    @Html.TextBoxFor(m => m.Request.SriggleIds,
+                        new { @class = "form-control", id = "SriggleIds",
+                              placeholder = "e.g. SRG001, SRG002, SRG003", autocomplete = "off" })
+                </div>
+
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search me-1"></i>Search
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     GLOBAL ERROR BANNER
+     ══════════════════════════════════════════════════════ -->
+@if (!string.IsNullOrEmpty(Model.GlobalError))
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <strong>Error:</strong> @Model.GlobalError
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- ══════════════════════════════════════════════════════
+     NO RESULTS
+     ══════════════════════════════════════════════════════ -->
+@if (Model.Searched && (Model.Results == null || Model.Results.Count == 0))
+{
+    <div class="text-center py-5">
+        <div style="font-size:3rem;color:#adb5bd;"><i class="bi bi-database-x"></i></div>
+        <h5 class="mt-3 text-muted">No results found</h5>
+        <p class="text-muted small">Try different Sriggle IDs or verify your configuration.</p>
+    </div>
+}
+
+<!-- ══════════════════════════════════════════════════════
+     RESULTS — accordion, one panel per item
+     ══════════════════════════════════════════════════════ -->
+@if (Model.Searched && Model.Results != null && Model.Results.Count > 0)
+{
+    <div class="accordion" id="resultsAccordion">
+        @for (int i = 0; i < Model.Results.Count; i++)
+        {
+            var item = Model.Results[i];
+            <div class="accordion-item mb-2">
+                <h2 class="accordion-header" id="hdr-@i">
+                    <button class="accordion-button collapsed"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#body-@i"
+                            aria-expanded="false"
+                            aria-controls="body-@i">
+                        @if (item.HasError)
+                        {
+                            <i class="bi bi-bug-fill text-danger me-2"></i>
+                        }
+                        else if (item.HasMissing)
+                        {
+                            <i class="bi bi-x-circle-fill text-danger me-2"></i>
+                        }
+                        else if (item.HasEmpty)
+                        {
+                            <i class="bi bi-exclamation-circle-fill text-warning me-2"></i>
+                        }
+                        else
+                        {
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        }
+                        <span class="fw-semibold">@item.DisplayTitle</span>
+                    </button>
+                </h2>
+
+                <div id="body-@i"
+                     class="accordion-collapse collapse"
+                     aria-labelledby="hdr-@i"
+                     data-bs-parent="#resultsAccordion">
+                    <div class="accordion-body p-0">
+
+                        @if (item.HasError)
+                        {
+                            <div class="alert alert-danger m-3">
+                                <i class="bi bi-bug-fill me-2"></i>
+                                <strong>Error:</strong> @item.ErrorMessage
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Metadata -->
+                            <div class="bg-light border-bottom px-4 py-3">
+                                <div class="row g-3">
+                                    <div class="col-auto">
+                                        <span class="text-muted small d-block">Name</span>
+                                        <span class="meta-chip">@(item.Title ?? "—")</span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <span class="text-muted small d-block">ItemId</span>
+                                        <span class="meta-chip">@(item.ItemId ?? "NA")</span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <span class="text-muted small d-block">SriggleId</span>
+                                        <span class="meta-chip">@(item.SriggleId ?? "—")</span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <span class="text-muted small d-block">Content Type</span>
+                                        <span class="meta-chip">@item.ContentType</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- GA Validation -->
+                            <div class="px-4 pt-3 pb-4">
+                                @if (item.MissingCount == 0 && item.EmptyCount == 0 && item.ValidCount == 0)
+                                {
+                                    <p class="text-muted fst-italic mt-2">No GA data available to validate.</p>
+                                }
+                                @if (item.HasMissing)
+                                {
+                                    <h6 class="text-danger mt-2">
+                                        <i class="bi bi-x-circle-fill me-1"></i>Missing Fields
+                                        <span class="badge bg-danger ms-1">@item.MissingCount</span>
+                                    </h6>
+                                    <ul class="list-group list-group-flush mb-3">
+                                        @foreach (var f in item.SafeValidation.MissingFields)
+                                        {
+                                            <li class="list-group-item list-group-item-danger py-2" style="border-left:4px solid #dc3545">
+                                                <i class="bi bi-x-lg me-2"></i>
+                                                <strong>@f.FieldName</strong>
+                                                <span class="badge ms-2" style="background-color:#dc3545;color:#fff;">MISSING</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                @if (item.HasEmpty)
+                                {
+                                    <h6 class="text-warning mt-2">
+                                        <i class="bi bi-exclamation-circle-fill me-1"></i>Empty Fields
+                                        <span class="badge bg-warning text-dark ms-1">@item.EmptyCount</span>
+                                    </h6>
+                                    <ul class="list-group list-group-flush mb-3">
+                                        @foreach (var f in item.SafeValidation.EmptyFields)
+                                        {
+                                            <li class="list-group-item list-group-item-warning py-2" style="border-left:4px solid #fd7e14">
+                                                <i class="bi bi-dash-circle me-2"></i>
+                                                <strong>@f.FieldName</strong>
+                                                <span class="badge ms-2" style="background-color:#fd7e14;color:#fff;">EMPTY</span>
+                                                @if (!string.IsNullOrWhiteSpace(f.Value))
+                                                {
+                                                    <code class="ms-2 small text-muted">@f.Value</code>
+                                                }
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                @if (item.HasValid)
+                                {
+                                    <h6 class="text-success mt-2">
+                                        <i class="bi bi-check-circle-fill me-1"></i>Valid Fields
+                                        <span class="badge bg-success ms-1">@item.ValidCount</span>
+                                    </h6>
+                                    <ul class="list-group list-group-flush mb-3">
+                                        @foreach (var f in item.SafeValidation.ValidFields)
+                                        {
+                                            <li class="list-group-item list-group-item-success py-2" style="border-left:4px solid #198754">
+                                                <i class="bi bi-check-lg me-2"></i>
+                                                <strong>@f.FieldName</strong>
+                                                <span class="badge ms-2" style="background-color:#198754;color:#fff;">VALID</span>
+                                                <span class="ms-2 small" title="@f.Value">@f.Value</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section scripts {
+    <script>
+        (function () {
+            var lastOpen = sessionStorage.getItem('coveo_open_accordion');
+            if (lastOpen) {
+                var el = document.getElementById(lastOpen);
+                if (el) { new bootstrap.Collapse(el, { toggle: true }); }
+                sessionStorage.removeItem('coveo_open_accordion');
+            }
+            document.querySelectorAll('.accordion-button').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var t = btn.getAttribute('data-bs-target');
+                    if (t) { sessionStorage.setItem('coveo_open_accordion', t.replace('#', '')); }
+                });
+            });
+        })();
+    </script>
+}

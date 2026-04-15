@@ -1,0 +1,19 @@
+@model System.Web.Mvc.HandleErrorInfo
+@{
+    ViewBag.Title = "Error";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="alert alert-danger mt-4" role="alert">
+    <h4 class="alert-heading"><i class="bi bi-x-octagon-fill me-2"></i>An error occurred</h4>
+    <p>An unhandled exception occurred during execution. Please try again.</p>
+    @if (Model != null)
+    {
+        <hr />
+        <p class="mb-0 small">
+            <strong>Controller:</strong> @Model.ControllerName<br />
+            <strong>Action:</strong> @Model.ActionName<br />
+            <strong>Exception:</strong> @Model.Exception?.Message
+        </p>
+    }
+</div>
