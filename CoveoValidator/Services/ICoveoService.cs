@@ -20,6 +20,7 @@ namespace CoveoValidator.Services
         Task<List<ComparisonResultModel>> SearchAndValidateAsync(
             string contentType,
             IEnumerable<string> sriggleIds,
-            string bearerToken);
+            string bearerToken,
+            string language = "en");
     }
 }

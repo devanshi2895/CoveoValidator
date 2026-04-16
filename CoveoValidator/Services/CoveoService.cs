@@ -25,7 +25,9 @@ namespace CoveoValidator.Services
         private const string HotelTemplateId     = "d801ccec-bb25-4621-a1db-ea4eaf32120e";
         private const string ExcursionTemplateId = "44002bda-145b-49a9-a8f4-36b568362c76";
 
-        private const string CommonLanguageFilter = "@flanguage50416==\"en\"";
+        private static string LanguageFilter(string language) =>
+            $"@flanguage50416==\"{language}\"";
+
         private const string CommonPathFilter     = "@ffullpath50416=*\"/sitecore/content/YasConnect/GlobalContent/SharedContent/Platform/*\"";
 
         // ── Shared HttpClient (thread-safe, reuse across calls) ──────────────────
@@ -39,11 +41,12 @@ namespace CoveoValidator.Services
         public async Task<List<ComparisonResultModel>> SearchAndValidateAsync(
             string contentType,
             IEnumerable<string> sriggleIds,
-            string bearerToken)
+            string bearerToken,
+            string language = "en")
         {
             // Fan-out: one API call per ID, all running concurrently.
             var tasks = sriggleIds
-                .Select(id => SearchSingleIdAsync(contentType, id.Trim(), bearerToken));
+                .Select(id => SearchSingleIdAsync(contentType, id.Trim(), bearerToken, language));
 
             var nestedResults = await Task.WhenAll(tasks).ConfigureAwait(false);
 
@@ -56,11 +59,12 @@ namespace CoveoValidator.Services
         private async Task<List<ComparisonResultModel>> SearchSingleIdAsync(
             string contentType,
             string sriggleId,
-            string bearerToken)
+            string bearerToken,
+            string language)
         {
             try
             {
-                var queryBody = BuildQueryBody(contentType, sriggleId);
+                var queryBody = BuildQueryBody(contentType, sriggleId, language);
                 var json      = JsonConvert.SerializeObject(queryBody);
 
                 using (var request = new HttpRequestMessage(HttpMethod.Post, CoveoSearchUrl))
@@ -92,7 +96,7 @@ namespace CoveoValidator.Services
 
         // ── Private: build CQL query body ────────────────────────────────────────
 
-        private object BuildQueryBody(string contentType, string sriggleId)
+        private object BuildQueryBody(string contentType, string sriggleId, string language)
         {
             // Determine template + field list based on content type.
             bool isHotel = string.Equals(contentType, "Hotel", StringComparison.OrdinalIgnoreCase);
@@ -103,9 +107,9 @@ namespace CoveoValidator.Services
 
             // CQL expression: language + path + template + sriggle ID filter.
             // We match the sriggle ID inside the backend info JSON field (loose match).
-            string cql = $"{CommonLanguageFilter} AND {CommonPathFilter} " +
+            string cql = $"{LanguageFilter(language)} AND {CommonPathFilter} " +
                          $"AND @ftemplateid50416==\"{templateId}\" " +
-                         $"AND @{infoField}=*\"{sriggleId}\"";
+                         $"AND @fsriggleid50416==\"{sriggleId}\"";
 
             return new
             {

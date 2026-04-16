@@ -11,5 +11,8 @@ namespace CoveoValidator.Models.Coveo
 
         /// <summary>Comma-separated Sriggle IDs entered by the user.</summary>
         public string SriggleIds { get; set; }
+
+        /// <summary>"en" or "ar"</summary>
+        public string Language { get; set; }
     }
 }

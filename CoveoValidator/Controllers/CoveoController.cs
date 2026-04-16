@@ -33,7 +33,7 @@ namespace CoveoValidator.Controllers
         {
             var vm = new CoveoSearchViewModel
             {
-                Request = new CoveoRequestModel { ContentType = "Hotel" }
+                Request = new CoveoRequestModel { ContentType = "Hotel", Language = "en" }
             };
             return View(vm);
         }
@@ -84,7 +84,8 @@ namespace CoveoValidator.Controllers
                 vm.Results = await _coveoService.SearchAndValidateAsync(
                     request.ContentType,
                     ids,
-                    bearerToken.Trim());
+                    bearerToken.Trim(),
+                    string.IsNullOrWhiteSpace(request.Language) ? "en" : request.Language.Trim());
             }
             catch (Exception ex)
             {

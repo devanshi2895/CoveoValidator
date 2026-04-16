@@ -35,14 +35,27 @@
                         new { @class = "form-select", id = "ContentType" })
                 </div>
 
-                <div class="col-md-7">
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold" for="Language">
+                        <i class="bi bi-translate me-1"></i>Language
+                    </label>
+                    @Html.DropDownListFor(m => m.Request.Language,
+                        new SelectList(new[]
+                        {
+                            new { Value = "en", Text = "English (en)" },
+                            new { Value = "ar-AE", Text = "Arabic (ar)" }
+                        }, "Value", "Text", Model.Request.Language),
+                        new { @class = "form-select", id = "Language" })
+                </div>
+
+                <div class="col-md-5">
                     <label class="form-label fw-semibold" for="SriggleIds">
                         <i class="bi bi-upc-scan me-1"></i>Sriggle IDs
                         <span class="text-muted fw-normal">(comma-separated)</span>
                     </label>
                     @Html.TextBoxFor(m => m.Request.SriggleIds,
                         new { @class = "form-control", id = "SriggleIds",
-                              placeholder = "e.g. SRG001, SRG002, SRG003", autocomplete = "off" })
+                              placeholder = "Enter Sriggle IDs, comma-separated", autocomplete = "off" })
                 </div>
 
                 <div class="col-md-2">
