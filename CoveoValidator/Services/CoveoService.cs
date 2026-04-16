@@ -148,7 +148,6 @@ namespace CoveoValidator.Services
 
             if (apiResponse?.Results == null || !apiResponse.Results.Any())
             {
-                // Return a placeholder so the UI can show "no data found".
                 return new List<ComparisonResultModel>
                 {
                     new ComparisonResultModel
@@ -156,7 +155,7 @@ namespace CoveoValidator.Services
                         SriggleId   = sriggleId,
                         ContentType = contentType,
                         Title       = $"[No results found for SriggleId: {sriggleId}]",
-                        HasError    = false
+                        IsNotFound  = true
                     }
                 };
             }

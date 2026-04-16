@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-This workspace contains **CoveoValidator** (`CoveoValidator/`), an ASP.NET MVC 5 web application (.NET Framework 4.8) that validates Coveo GA (Global Attributes) content for Sitecore items. A more detailed `CLAUDE.md` lives in `CoveoValidator/`.
+**CoveoValidator** is an ASP.NET MVC 5 web application (.NET Framework 4.8) that validates Coveo GA (Global Attributes) content for Sitecore items. Source lives under `CoveoValidator/`.
 
 ## Build & Run
 

@@ -59,7 +59,7 @@
                 </div>
 
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">
+                    <button type="submit" id="searchBtn" class="btn btn-primary w-100" disabled>
                         <i class="bi bi-search me-1"></i>Search
                     </button>
                 </div>
@@ -97,6 +97,21 @@
      ══════════════════════════════════════════════════════ -->
 @if (Model.Searched && Model.Results != null && Model.Results.Count > 0)
 {
+    <!-- Hidden form that re-posts the same search inputs to ExportExcel -->
+    <form id="exportForm" method="post" action="@Url.Action("ExportExcel", "Coveo")" style="display:none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ContentType" value="@Model.Request.ContentType" />
+        <input type="hidden" name="SriggleIds"  value="@Model.Request.SriggleIds" />
+        <input type="hidden" name="Language"    value="@Model.Request.Language" />
+    </form>
+
+    <div class="d-flex justify-content-end mb-3">
+        <button type="button" class="btn btn-success"
+                onclick="document.getElementById('exportForm').submit()">
+            <i class="bi bi-file-earmark-excel me-1"></i>Export to Excel
+        </button>
+    </div>
+
     <div class="accordion" id="resultsAccordion">
         @for (int i = 0; i < Model.Results.Count; i++)
         {
@@ -252,6 +267,28 @@
                     if (t) { sessionStorage.setItem('coveo_open_accordion', t.replace('#', '')); }
                 });
             });
+
+            // Enable/disable Search button based on whether Sriggle IDs field has a value.
+            var sriggleInput = document.getElementById('SriggleIds');
+            var searchBtn    = document.getElementById('searchBtn');
+
+            function syncSearchBtn() {
+                searchBtn.disabled = !sriggleInput.value.trim();
+            }
+
+            if (sriggleInput && searchBtn) {
+                sriggleInput.addEventListener('input', syncSearchBtn);
+                syncSearchBtn(); // set correct state on page load (e.g. after back-navigation)
+            }
+
+            // Clear Sriggle IDs only when Content Type (Hotel/Excursion) changes.
+            var contentTypeEl = document.getElementById('ContentType');
+            if (contentTypeEl && sriggleInput) {
+                contentTypeEl.addEventListener('change', function () {
+                    sriggleInput.value = '';
+                    syncSearchBtn();
+                });
+            }
         })();
     </script>
 }

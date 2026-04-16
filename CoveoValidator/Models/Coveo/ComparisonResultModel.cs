@@ -28,6 +28,7 @@ namespace CoveoValidator.Models.Coveo
         // ── Error state ──────────────────────────────────────────────────────────
         public bool HasError { get; set; }
         public string ErrorMessage { get; set; }
+        public bool IsNotFound { get; set; }
 
         // ── Computed helpers (used by the view — keeps @for body logic-free) ─────
         public bool HasMissing  { get { return Validation != null && Validation.MissingFields.Count > 0; } }

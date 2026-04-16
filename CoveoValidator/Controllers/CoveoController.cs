@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Threading.Tasks;
@@ -93,6 +94,53 @@ namespace CoveoValidator.Controllers
             }
 
             return View(vm);
+        }
+
+        // ── POST /Coveo/ExportExcel ───────────────────────────────────────────────
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> ExportExcel(CoveoRequestModel request)
+        {
+            string bearerToken = ConfigurationManager.AppSettings["Coveo:DefaultBearerToken"];
+
+            if (string.IsNullOrWhiteSpace(bearerToken) || string.IsNullOrWhiteSpace(request.SriggleIds))
+                return RedirectToAction("Index");
+
+            var ids = request.SriggleIds
+                .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(id => id.Trim())
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+                return RedirectToAction("Index");
+
+            string language = string.IsNullOrWhiteSpace(request.Language) ? "en" : request.Language.Trim();
+
+            List<ComparisonResultModel> results;
+            try
+            {
+                results = await _coveoService.SearchAndValidateAsync(
+                    request.ContentType,
+                    ids,
+                    bearerToken.Trim(),
+                    language);
+            }
+            catch (Exception ex)
+            {
+                TempData["ExportError"] = $"Export failed: {ex.Message}";
+                return RedirectToAction("Index");
+            }
+
+            byte[] fileBytes = ExcelExportService.Export(results, language);
+            string fileName = string.Format("CoveoValidation_{0}_{1}_{2:yyyyMMdd_HHmmss}.xlsx",
+                request.ContentType, language, DateTime.Now);
+
+            return File(fileBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                fileName);
         }
     }
 }

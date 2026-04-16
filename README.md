@@ -27,9 +27,11 @@ An ASP.NET MVC 5 web application (.NET Framework 4.8) that validates Coveo GA (G
 
 ## Usage
 
-1. Select a **Content Type** (Hotel or Excursion).
-2. Enter one or more **Sriggle IDs** (comma or semicolon separated).
-3. Click **Search** to query Coveo and see per-field validation results.
+1. Select a **Content Type** (Hotel or Excursion). Changing the content type clears the Sriggle IDs field.
+2. Select a **Language** (`English (en)` or `Arabic (ar-AE)`).
+3. Enter one or more **Sriggle IDs** (comma or semicolon separated). The Search button is enabled only when at least one ID is entered.
+4. Click **Search** to query Coveo and view per-field validation results in an accordion.
+5. Click **Export to Excel** (visible when results are present) to download a `.xlsx` report.
 
 Each field is reported as:
 
@@ -38,26 +40,36 @@ Each field is reported as:
 | **Valid** | Present in GA data with a non-empty value |
 | **Empty** | Present but value is null, whitespace, `[]`, or `{}` |
 | **Missing** | Expected by the domain model but not found in GA data |
+| **Not Found** | Coveo returned no document for the given Sriggle ID |
+
+## Excel Export
+
+The exported workbook contains two sheets:
+
+**Summary** — one row per Sriggle ID with columns: SriggleId, Title, ItemId, ContentType, Language, Missing count, Empty count, Valid count, Overall Status, Missing Field Names, Empty Field Names. Status cells are colour-coded (red = missing/error, yellow = empty, green = valid, grey = not found).
+
+**Field Detail** — one row per field with columns: SriggleId, Title, ContentType, FieldName, Status, Value. Not-found and error items are excluded.
 
 ## Architecture
 
 ```
 CoveoValidator/
-├── Controllers/CoveoController.cs       — GET/POST Index
+├── Controllers/CoveoController.cs       — GET/POST Index, POST ExportExcel
 ├── Services/CoveoService.cs             — Coveo API calls + validation logic
+├── Services/ExcelExportService.cs       — Excel workbook generation (EPPlus 4.5.3)
 ├── Helpers/FieldValidationHelper.cs     — Reflection-based field comparison
 ├── Models/Domain/                       — HotelInfoModel, ExcursionInfoModel (validation schema)
 ├── Models/Coveo/                        — API request/response shapes
-└── Views/Coveo/Index.cshtml             — Search form + results table
+└── Views/Coveo/Index.cshtml             — Search form + results accordion
 ```
 
-**Validation schema:** `HotelInfoModel` and `ExcursionInfoModel` define the expected fields. Adding or renaming a property in those classes automatically changes what gets validated.
+**Validation schema:** `HotelInfoModel` and `ExcursionInfoModel` (both extending `SriggleBaseModel`) define the expected fields. Adding or renaming a property automatically changes what gets validated.
 
 **Coveo field mapping:**
 
-| Content Type | GA field |
-|---|---|
-| Hotel | `fgahotelinfo50416` |
-| Excursion | `fgaez120xcursioninfo50416` |
+| Content Type | Template GUID | Backend field | GA field |
+|---|---|---|---|
+| Hotel | `d801ccec-bb25-4621-a1db-ea4eaf32120e` | `fhotelinfo50416` | `fgahotelinfo50416` |
+| Excursion | `44002bda-145b-49a9-a8f4-36b568362c76` | `fez120xcursioninfo50416` | `fgaez120xcursioninfo50416` |
 
-All queries filter to English content under `/sitecore/content/YasConnect/GlobalContent/SharedContent/Platform/`.
+All queries filter by the user-selected language and the path `/sitecore/content/YasConnect/GlobalContent/SharedContent/Platform/`. Sriggle IDs are matched using `@fsriggleid50416==` (exact match).
